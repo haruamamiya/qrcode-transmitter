@@ -101,6 +101,8 @@ Common scripts:
 
 ## Run the Example
 
+Live demo: https://haruamamiya.github.io/qrcode-transmitter/
+
 After running `pnpm example`:
 
 - In the "Encode" section, enter text or select a file to render QR frames at 5fps
