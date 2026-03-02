@@ -1,5 +1,7 @@
 # qrcode-transmitter
 
+[![npm downloads](https://img.shields.io/npm/dm/qrcode-transmitter?logo=npm)](https://www.npmjs.com/package/qrcode-transmitter)
+
 A lightweight browser-oriented library for splitting arbitrary binary data into multiple QR frames and reassembling it on scan.
 
 ## Features
