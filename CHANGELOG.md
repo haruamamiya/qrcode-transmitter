@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-03-03
+
 ### Added
 
 - Added `encodeBytesToQRCodes` to split `Uint8Array` payloads into protocol frames and generate QR SVG output
