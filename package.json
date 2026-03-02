@@ -22,7 +22,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest",
     "test:run": "vitest run",
-    "example": "vite --config example/vite.config.ts"
+    "example": "vite --config example/vite.config.ts",
+    "example:build": "vite build --config example/vite.config.ts"
   },
   "keywords": [],
   "author": "",
