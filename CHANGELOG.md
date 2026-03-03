@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-03-03
+
 ### Added
 
 - SHA-256 integrity verification: frame 0 now carries `sha256Base64` of the full payload
@@ -18,6 +20,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `encodeBytesToQRCodes` is now async (returns `Promise<EncodedFrame[]>`)
 - `onComplete` only fires when SHA-256 verification passes
 - Protocol: frame 0 format is `msgId|0/total|sha256Base64|payloadBase64`; old format without hash is no longer supported
+
+### Breaking
+
+- `encodeBytesToQRCodes` returns `Promise<EncodedFrame[]>`; callers must await
+- Frame 0 must include `sha256Base64`; receivers reject frames without it
 
 ## [1.0.0] - 2026-03-03
 
