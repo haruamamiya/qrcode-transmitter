@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- SHA-256 integrity verification: frame 0 now carries `sha256Base64` of the full payload
+- `onVerifyFailed` callback in `VideoQRReceiverOptions` when SHA-256 verification fails
+- `sha256Base64(data)` helper for computing SHA-256 digest in base64
+
+### Changed
+
+- `encodeBytesToQRCodes` is now async (returns `Promise<EncodedFrame[]>`)
+- `onComplete` only fires when SHA-256 verification passes
+- Protocol: frame 0 format is `msgId|0/total|sha256Base64|payloadBase64`; old format without hash is no longer supported
+
 ## [1.0.0] - 2026-03-03
 
 ### Added

@@ -7,6 +7,7 @@ A lightweight browser-oriented library for splitting arbitrary binary data into 
 ## Features
 
 - Splits `Uint8Array` payloads into protocol frames and encodes each frame as QR SVG
+- Frame 0 includes SHA-256 of the full payload for integrity verification
 - Scans QR codes from camera input and reassembles payloads automatically
 - Handles duplicate frames and out-of-order frame delivery (`msgId + frameIndex` aggregation)
 - Includes a runnable example app for local testing and demos
@@ -24,12 +25,12 @@ You can also install it with `npm` or `yarn`.
 ```ts
 import { encodeBytesToQRCodes, startVideoQRReceiver } from "qrcode-transmitter";
 
-// 1) Sender: encode data into multiple QR frames
+// 1) Sender: encode data into multiple QR frames (async, computes SHA-256)
 const bytes = new TextEncoder().encode("Hello QR");
-const frames = encodeBytesToQRCodes(bytes);
+const frames = await encodeBytesToQRCodes(bytes);
 // frames[i].svg can be injected into the DOM directly
 
-// 2) Receiver: scan with a video element and reassemble
+// 2) Receiver: scan with a video element and reassemble (SHA-256 verified)
 const video = document.querySelector("video") as HTMLVideoElement;
 const receiver = startVideoQRReceiver(video, {
   onFrame: (progress) => {
@@ -37,6 +38,9 @@ const receiver = startVideoQRReceiver(video, {
   },
   onComplete: (data) => {
     console.log(new TextDecoder().decode(data));
+  },
+  onVerifyFailed: (info) => {
+    console.error("SHA-256 mismatch", info.expectedSha256Base64, info.actualSha256Base64);
   },
 });
 
@@ -46,9 +50,9 @@ receiver.stop();
 
 ## API
 
-### `encodeBytesToQRCodes(bytes: Uint8Array): EncodedFrame[]`
+### `encodeBytesToQRCodes(bytes: Uint8Array): Promise<EncodedFrame[]>`
 
-Encodes a raw byte array and returns QR frame objects:
+Encodes a raw byte array and returns QR frame objects. Frame 0 includes SHA-256 (base64) of the full payload:
 
 - `frameIndex`: frame index (starting from 0)
 - `totalFrames`: total number of frames
@@ -67,19 +71,20 @@ Starts scanning and reassembles data by protocol:
 
 - `video`: `HTMLVideoElement`
 - `options.onFrame`: called when each new (non-duplicate) frame is parsed
-- `options.onComplete`: called when all frames are received, with the complete `Uint8Array`
+- `options.onComplete`: called when all frames are received and SHA-256 verification passes
+- `options.onVerifyFailed`: called when SHA-256 verification fails after reassembly
 
 Returns an object with `stop()` to stop and destroy the scanner.
 
 ## Protocol
 
-Frame text format:
-
-`msgId|idx/total|payloadBase64`
+Frame 0: `msgId|0/total|sha256Base64|payloadBase64`  
+Frame i>0: `msgId|idx/total|payloadBase64`
 
 - `msgId`: 8-character random hexadecimal string
 - `idx`: current chunk index
 - `total`: total chunk count
+- `sha256Base64`: (frame 0 only) SHA-256 of full payload, base64-encoded
 - `payloadBase64`: base64 payload of the chunk
 
 ## Local Development

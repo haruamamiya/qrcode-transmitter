@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
 const mockQrcode = vi.fn();
@@ -44,19 +45,19 @@ beforeEach(() => {
 describe("encodeBytesToQRCodes", () => {
   it("uses TypeNumber=15 and L error correction", async () => {
     const { encodeBytesToQRCodes } = await import("../src/index");
-    encodeBytesToQRCodes(new TextEncoder().encode("hi"));
+    await encodeBytesToQRCodes(new TextEncoder().encode("hi"));
     expect(mockQrcode).toHaveBeenCalledWith(15, "L");
   });
 
   it("addData uses Byte mode", async () => {
     const { encodeBytesToQRCodes } = await import("../src/index");
-    encodeBytesToQRCodes(new TextEncoder().encode("hi"));
+    await encodeBytesToQRCodes(new TextEncoder().encode("hi"));
     expect(mockAddData).toHaveBeenCalledWith(expect.any(String), "Byte");
   });
 
   it("returns array of objects with frame indices", async () => {
     const { encodeBytesToQRCodes } = await import("../src/index");
-    const frames = encodeBytesToQRCodes(new TextEncoder().encode("hi"));
+    const frames = await encodeBytesToQRCodes(new TextEncoder().encode("hi"));
     expect(Array.isArray(frames)).toBe(true);
     expect(frames.length).toBeGreaterThanOrEqual(1);
     for (const f of frames) {
@@ -110,7 +111,7 @@ describe("startVideoQRReceiver", () => {
     expect(destroyFn).toHaveBeenCalled();
   });
 
-  it("calls onComplete when all chunks received", async () => {
+  it("calls onComplete when all chunks received and SHA-256 verification passes", async () => {
     let captured: Uint8Array | null = null;
     const onComplete = (data: Uint8Array) => {
       captured = data;
@@ -123,11 +124,42 @@ describe("startVideoQRReceiver", () => {
     const onDecode = QrScanner.mock.calls[0]![1] as (r: { data: string }) => void;
 
     const payload = new TextEncoder().encode("test");
+    const hash = createHash("sha256").update(payload).digest("base64");
     const b64 = btoa(String.fromCharCode.apply(null, Array.from(payload)));
-    onDecode({ data: `abcd1234|0/1|${b64}` });
+    onDecode({ data: `abcd1234|0/1|${hash}|${b64}` });
 
+    await new Promise((r) => setTimeout(r, 50));
     expect(captured).not.toBeNull();
     expect(new TextDecoder().decode(captured!)).toBe("test");
+
+    receiver.stop();
+  });
+
+  it("calls onVerifyFailed when SHA-256 verification fails", async () => {
+    let onCompleteCalled = false;
+    let onVerifyFailedCalled = false;
+    const { startVideoQRReceiver } = await import("../src/index");
+    const video = {} as HTMLVideoElement;
+    const receiver = startVideoQRReceiver(video, {
+      onComplete: () => {
+        onCompleteCalled = true;
+      },
+      onVerifyFailed: () => {
+        onVerifyFailedCalled = true;
+      },
+    });
+
+    const QrScanner = (await import("qr-scanner")).default as ReturnType<typeof vi.fn>;
+    const onDecode = QrScanner.mock.calls[0]![1] as (r: { data: string }) => void;
+
+    const payload = new TextEncoder().encode("test");
+    const wrongHash = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=";
+    const b64 = btoa(String.fromCharCode.apply(null, Array.from(payload)));
+    onDecode({ data: `abcd1234|0/1|${wrongHash}|${b64}` });
+
+    await new Promise((r) => setTimeout(r, 50));
+    expect(onCompleteCalled).toBe(false);
+    expect(onVerifyFailedCalled).toBe(true);
 
     receiver.stop();
   });
@@ -143,8 +175,10 @@ describe("startVideoQRReceiver", () => {
     const QrScanner = (await import("qr-scanner")).default as ReturnType<typeof vi.fn>;
     const onDecode = QrScanner.mock.calls[0]![1] as (r: { data: string }) => void;
 
-    const b64 = btoa(String.fromCharCode.apply(null, Array.from(new TextEncoder().encode("x"))));
-    onDecode({ data: `abcd1234|0/1|${b64}` });
+    const payload = new TextEncoder().encode("x");
+    const hash = createHash("sha256").update(payload).digest("base64");
+    const b64 = btoa(String.fromCharCode.apply(null, Array.from(payload)));
+    onDecode({ data: `abcd1234|0/1|${hash}|${b64}` });
 
     expect(onFrameCalls.length).toBeGreaterThanOrEqual(1);
     expect(onFrameCalls[0]!.frameIndex).toBe(0);
@@ -165,8 +199,10 @@ describe("startVideoQRReceiver", () => {
     const QrScanner = (await import("qr-scanner")).default as ReturnType<typeof vi.fn>;
     const onDecode = QrScanner.mock.calls[0]![1] as (r: { data: string }) => void;
 
+    const full = new TextEncoder().encode("ab");
+    const hash = createHash("sha256").update(full).digest("base64");
     const b64 = btoa(String.fromCharCode.apply(null, Array.from(new TextEncoder().encode("a"))));
-    const frame = `dup12345|0/2|${b64}`;
+    const frame = `dup12345|0/2|${hash}|${b64}`;
     onDecode({ data: frame });
     onDecode({ data: frame });
     onDecode({ data: frame });

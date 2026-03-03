@@ -35,10 +35,10 @@ function showQRCodes(frames: { frameIndex: number; totalFrames: number; svg: str
   }, SWITCH_INTERVAL_MS);
 }
 
-encodeTextBtn.addEventListener("click", () => {
+encodeTextBtn.addEventListener("click", async () => {
   const text = encodeInput.value.trim();
   const bytes = new TextEncoder().encode(text);
-  const frames = encodeBytesToQRCodes(bytes);
+  const frames = await encodeBytesToQRCodes(bytes);
   showQRCodes(frames);
 });
 
@@ -48,10 +48,10 @@ fileInput.addEventListener("change", (e) => {
   const file = (e.target as HTMLInputElement).files?.[0];
   if (!file) return;
   const reader = new FileReader();
-  reader.onload = () => {
+  reader.onload = async () => {
     const buf = reader.result as ArrayBuffer;
     const bytes = new Uint8Array(buf);
-    const frames = encodeBytesToQRCodes(bytes);
+    const frames = await encodeBytesToQRCodes(bytes);
     showQRCodes(frames);
     qrStatus.textContent = `File ${file.name}, ${frames.length} frames`;
   };
@@ -117,6 +117,9 @@ startScanBtn.addEventListener("click", () => {
   receiver = startVideoQRReceiver(video, {
     onFrame: (p) => {
       scanProgress.textContent = `Parsed frame ${p.frameIndex + 1}/${p.totalFrames} (${p.receivedCount} received)`;
+    },
+    onVerifyFailed: (info) => {
+      scanProgress.textContent = `SHA-256 verification failed. Expected ${info.expectedSha256Base64}, got ${info.actualSha256Base64}`;
     },
     onComplete: (data) => {
       lastReceivedData = data;

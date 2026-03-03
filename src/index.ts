@@ -13,12 +13,24 @@ export interface EncodedFrame {
 }
 
 /**
- * Encode byte array to QR codes with TypeNumber=15 and L error correction
+ * Compute SHA-256 of data and return base64-encoded digest
+ */
+export async function sha256Base64(data: Uint8Array): Promise<string> {
+  const copy = new Uint8Array(data);
+  const hash = await crypto.subtle.digest("SHA-256", copy);
+  const binary = String.fromCharCode.apply(null, Array.from(new Uint8Array(hash)));
+  return btoa(binary);
+}
+
+/**
+ * Encode byte array to QR codes with TypeNumber=15 and L error correction.
+ * Frame 0 includes SHA-256 of the full payload for integrity verification.
  * @param bytes Raw byte array
  * @returns Array of encoded results with frame indices
  */
-export function encodeBytesToQRCodes(bytes: Uint8Array): EncodedFrame[] {
-  const frames = splitIntoFrames(bytes);
+export async function encodeBytesToQRCodes(bytes: Uint8Array): Promise<EncodedFrame[]> {
+  const sha256Base64Str = await sha256Base64(bytes);
+  const frames = splitIntoFrames(bytes, sha256Base64Str);
   const result: EncodedFrame[] = [];
 
   for (const { frameIndex, totalFrames, frame, payloadBase64 } of frames) {
@@ -46,8 +58,14 @@ export interface FrameProgress {
 export interface VideoQRReceiverOptions {
   /** Fired when each frame is parsed */
   onFrame?: (progress: FrameProgress) => void;
-  /** Fired when the complete message is received */
+  /** Fired when the complete message is received and SHA-256 verification passes */
   onComplete?: (data: Uint8Array) => void;
+  /** Fired when SHA-256 verification fails after reassembly */
+  onVerifyFailed?: (info: {
+    msgId: string;
+    expectedSha256Base64: string;
+    actualSha256Base64: string;
+  }) => void;
 }
 
 export interface VideoQRReceiver {
@@ -64,7 +82,7 @@ export function startVideoQRReceiver(
   video: HTMLVideoElement,
   options: VideoQRReceiverOptions
 ): VideoQRReceiver {
-  const { onFrame, onComplete } = options;
+  const { onFrame, onComplete, onVerifyFailed } = options;
   const aggregator = new FrameAggregator();
 
   const qrScanner = new QrScanner(
@@ -82,8 +100,21 @@ export function startVideoQRReceiver(
           receivedCount: res.receivedCount,
         });
       }
-      if (res.complete && res.data && onComplete) {
-        onComplete(res.data);
+      if (res.complete && res.data && res.expectedSha256Base64) {
+        const data = res.data;
+        const expectedSha256Base64 = res.expectedSha256Base64;
+        const msgId = res.msgId;
+        sha256Base64(data).then((actualSha256Base64) => {
+          if (actualSha256Base64 === expectedSha256Base64) {
+            onComplete?.(data);
+          } else {
+            onVerifyFailed?.({
+              msgId,
+              expectedSha256Base64,
+              actualSha256Base64,
+            });
+          }
+        });
       }
     },
     {
