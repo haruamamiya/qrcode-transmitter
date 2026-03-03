@@ -66,24 +66,68 @@ const stopScanBtn = document.getElementById("stop-scan") as HTMLButtonElement;
 const scanProgress = document.getElementById("scan-progress")!;
 const receivedLabel = document.getElementById("received-label")!;
 const received = document.getElementById("received")!;
+const downloadControls = document.getElementById("download-controls")!;
+const downloadFilenameInput = document.getElementById("download-filename") as HTMLInputElement;
+const downloadReceivedBtn = document.getElementById("download-received") as HTMLButtonElement;
 
 let receiver: ReturnType<typeof startVideoQRReceiver> | null = null;
+let lastReceivedData: Uint8Array | null = null;
+
+function isProbablyText(data: Uint8Array): { isText: boolean; text?: string } {
+  try {
+    const text = new TextDecoder("utf-8", { fatal: true }).decode(data);
+    let suspicious = 0;
+    for (let i = 0; i < text.length; i++) {
+      const code = text.charCodeAt(i);
+      if (code < 32 && code !== 9 && code !== 10 && code !== 13) {
+        suspicious++;
+      }
+    }
+    const suspiciousRatio = text.length > 0 ? suspicious / text.length : 0;
+    if (suspiciousRatio > 0.05) return { isText: false };
+    return { isText: true, text };
+  } catch {
+    return { isText: false };
+  }
+}
+
+downloadReceivedBtn.addEventListener("click", () => {
+  if (!lastReceivedData) return;
+  const payload = Uint8Array.from(lastReceivedData);
+  const blob = new Blob([payload], { type: "application/octet-stream" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  const rawFilename = downloadFilenameInput.value.trim();
+  a.download = rawFilename.length > 0 ? rawFilename : "received.bin";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+});
 
 startScanBtn.addEventListener("click", () => {
   videoContainer.style.display = "block";
   scanProgress.textContent = "";
   receivedLabel.style.display = "none";
   received.textContent = "";
+  downloadControls.style.display = "none";
+  downloadFilenameInput.value = "received.bin";
+  lastReceivedData = null;
   receiver = startVideoQRReceiver(video, {
     onFrame: (p) => {
       scanProgress.textContent = `Parsed frame ${p.frameIndex + 1}/${p.totalFrames} (${p.receivedCount} received)`;
     },
     onComplete: (data) => {
-      try {
-        const text = new TextDecoder().decode(data);
+      lastReceivedData = data;
+      const result = isProbablyText(data);
+      if (result.isText) {
+        const text = result.text ?? "";
         received.textContent = text;
-      } catch {
+        downloadControls.style.display = "none";
+      } else {
         received.textContent = `[Binary ${data.length} bytes]`;
+        downloadControls.style.display = "block";
       }
       receivedLabel.style.display = "block";
       scanProgress.textContent = `Complete, ${data.length} bytes received`;
@@ -100,6 +144,9 @@ stopScanBtn.addEventListener("click", () => {
   }
   videoContainer.style.display = "none";
   scanProgress.textContent = "";
+  downloadControls.style.display = "none";
+  downloadFilenameInput.value = "received.bin";
+  lastReceivedData = null;
   startScanBtn.disabled = false;
   stopScanBtn.disabled = true;
 });
