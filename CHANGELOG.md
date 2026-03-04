@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Optional `typeNumber` parameter for `encodeBytesToQRCodes` to customize QR version (default 15)
+
 ## [1.1.0] - 2026-03-03
 
 ### Added

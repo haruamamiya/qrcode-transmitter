@@ -12,6 +12,10 @@ export interface EncodedFrame {
   payload: string;
 }
 
+export interface EncodeOptions {
+  typeNumber?: number;
+}
+
 /**
  * Compute SHA-256 of data and return base64-encoded digest
  */
@@ -28,13 +32,18 @@ export async function sha256Base64(data: Uint8Array): Promise<string> {
  * @param bytes Raw byte array
  * @returns Array of encoded results with frame indices
  */
-export async function encodeBytesToQRCodes(bytes: Uint8Array): Promise<EncodedFrame[]> {
+export async function encodeBytesToQRCodes(
+  bytes: Uint8Array,
+  options: EncodeOptions = {}
+): Promise<EncodedFrame[]> {
   const sha256Base64Str = await sha256Base64(bytes);
-  const frames = splitIntoFrames(bytes, sha256Base64Str);
+  const typeNumber = options.typeNumber ?? TYPE_NUMBER;
+  const qrTypeNumber = typeNumber as Parameters<typeof qrcode>[0];
+  const frames = splitIntoFrames(bytes, sha256Base64Str, typeNumber);
   const result: EncodedFrame[] = [];
 
   for (const { frameIndex, totalFrames, frame, payloadBase64 } of frames) {
-    const qr = qrcode(TYPE_NUMBER, ERROR_CORRECTION);
+    const qr = qrcode(qrTypeNumber, ERROR_CORRECTION);
     qr.addData(frame, "Byte");
     qr.make();
     result.push({

@@ -27,7 +27,7 @@ import { encodeBytesToQRCodes, startVideoQRReceiver } from "qrcode-transmitter";
 
 // 1) Sender: encode data into multiple QR frames (async, computes SHA-256)
 const bytes = new TextEncoder().encode("Hello QR");
-const frames = await encodeBytesToQRCodes(bytes);
+const frames = await encodeBytesToQRCodes(bytes, { typeNumber: 15 });
 // frames[i].svg can be injected into the DOM directly
 
 // 2) Receiver: scan with a video element and reassemble (SHA-256 verified)
@@ -50,7 +50,7 @@ receiver.stop();
 
 ## API
 
-### `encodeBytesToQRCodes(bytes: Uint8Array): Promise<EncodedFrame[]>`
+### `encodeBytesToQRCodes(bytes: Uint8Array, options?: { typeNumber?: number }): Promise<EncodedFrame[]>`
 
 Encodes a raw byte array and returns QR frame objects. Frame 0 includes SHA-256 (base64) of the full payload:
 
@@ -61,7 +61,7 @@ Encodes a raw byte array and returns QR frame objects. Frame 0 includes SHA-256 
 
 Encoding settings are fixed to:
 
-- QR `TypeNumber = 15`
+- QR `TypeNumber = 15` by default (override with `options.typeNumber`, range 1-40)
 - error correction level `L`
 - `Byte` mode for writing payload data
 

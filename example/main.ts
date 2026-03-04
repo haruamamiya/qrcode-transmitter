@@ -7,6 +7,7 @@ const encodeInput = document.getElementById("encode-input") as HTMLTextAreaEleme
 const encodeTextBtn = document.getElementById("encode-text") as HTMLButtonElement;
 const encodeFileBtn = document.getElementById("encode-file") as HTMLButtonElement;
 const fileInput = document.getElementById("file-input") as HTMLInputElement;
+const typeNumberInput = document.getElementById("type-number") as HTMLInputElement;
 const qrDisplay = document.getElementById("qr-display")!;
 const qrStatus = document.getElementById("qr-status")!;
 const qrFrameInfo = document.getElementById("qr-frame-info")!;
@@ -35,10 +36,16 @@ function showQRCodes(frames: { frameIndex: number; totalFrames: number; svg: str
   }, SWITCH_INTERVAL_MS);
 }
 
+function getTypeNumber(): number | undefined {
+  const raw = Number(typeNumberInput.value);
+  if (!Number.isInteger(raw) || raw < 4 || raw > 40) return undefined;
+  return raw;
+}
+
 encodeTextBtn.addEventListener("click", async () => {
   const text = encodeInput.value.trim();
   const bytes = new TextEncoder().encode(text);
-  const frames = await encodeBytesToQRCodes(bytes);
+  const frames = await encodeBytesToQRCodes(bytes, { typeNumber: getTypeNumber() });
   showQRCodes(frames);
 });
 
@@ -51,7 +58,7 @@ fileInput.addEventListener("change", (e) => {
   reader.onload = async () => {
     const buf = reader.result as ArrayBuffer;
     const bytes = new Uint8Array(buf);
-    const frames = await encodeBytesToQRCodes(bytes);
+    const frames = await encodeBytesToQRCodes(bytes, { typeNumber: getTypeNumber() });
     showQRCodes(frames);
     qrStatus.textContent = `File ${file.name}, ${frames.length} frames`;
   };

@@ -54,6 +54,15 @@ describe("splitIntoFrames", () => {
     expect(frames.length).toBeGreaterThan(1);
     expect(frames[0]!.totalFrames).toBe(frames.length);
   });
+
+  it("uses typeNumber to size frames", () => {
+    const bytes = new TextEncoder().encode("a".repeat(100));
+    const hash = sha256Base64(bytes);
+    const small = splitIntoFrames(bytes, hash, 4);
+    const large = splitIntoFrames(bytes, hash, 10);
+    expect(small.length).toBeGreaterThan(large.length);
+    expect(large.length).toBe(1);
+  });
 });
 
 describe("parseFrame", () => {

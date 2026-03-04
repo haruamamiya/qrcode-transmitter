@@ -4,8 +4,24 @@
  * Frame i>0: msgId|idx/total|payloadBase64
  */
 
-const TYPE15_BYTE_CAPACITY = 520; // TypeNumber 15, L error correction
 const SHA256_BASE64_LENGTH = 44; // 32 bytes -> base64
+
+// Byte mode capacity with error correction level L, versions 1-40
+// Source: https://www.qrcode.com/en/about/version.html (Binary column, L)
+const BYTE_CAPACITY_L = [
+  0,
+  17, 32, 53, 78, 106, 134, 154, 192, 230, 271,
+  321, 367, 425, 458, 520, 586, 644, 718, 792, 858,
+  929, 1003, 1091, 1171, 1273, 1367, 1465, 1528, 1628, 1732,
+  1840, 1952, 2068, 2188, 2303, 2431, 2563, 2699, 2809, 2953,
+];
+
+function getByteCapacity(typeNumber: number): number {
+  if (!Number.isInteger(typeNumber) || typeNumber < 1 || typeNumber > 40) {
+    throw new Error(`Unsupported typeNumber: ${typeNumber}. Supported range is 1-40.`);
+  }
+  return BYTE_CAPACITY_L[typeNumber] ?? 0;
+}
 
 function randomMsgId(): string {
   return Math.random().toString(16).slice(2, 10);
@@ -33,24 +49,29 @@ export interface FrameInfo {
  * @param bytes Raw byte array
  * @param sha256Base64 SHA-256 of bytes, base64-encoded (required for integrity verification)
  */
-export function splitIntoFrames(bytes: Uint8Array, sha256Base64: string): FrameInfo[] {
+export function splitIntoFrames(
+  bytes: Uint8Array,
+  sha256Base64: string,
+  typeNumber = 15
+): FrameInfo[] {
   const msgId = randomMsgId();
+  const byteCapacity = getByteCapacity(typeNumber);
   if (bytes.length === 0) {
     const frame = encodeFrame(msgId, 0, 1, "", sha256Base64);
     return [{ frameIndex: 0, totalFrames: 1, frame, payloadBase64: "" }];
   }
 
   const headerOverhead = estimateHeaderLength(1, true) + 4;
-  const maxPayloadChars = TYPE15_BYTE_CAPACITY - headerOverhead;
+  const maxPayloadChars = byteCapacity - headerOverhead;
   const maxPayloadBytes = Math.floor((maxPayloadChars * 3) / 4);
 
   if (maxPayloadBytes <= 0) {
-    throw new Error("Protocol header too large for Type 15 QR capacity");
+    throw new Error(`Protocol header too large for TypeNumber ${typeNumber} QR capacity`);
   }
 
   const total = Math.ceil(bytes.length / maxPayloadBytes);
   const headerLen = estimateHeaderLength(total, true) + 4;
-  const maxPayloadCharsActual = TYPE15_BYTE_CAPACITY - headerLen;
+  const maxPayloadCharsActual = byteCapacity - headerLen;
   const maxPayloadBytesActual = Math.floor((maxPayloadCharsActual * 3) / 4);
 
   const frames: FrameInfo[] = [];

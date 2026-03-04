@@ -55,6 +55,12 @@ describe("encodeBytesToQRCodes", () => {
     expect(mockAddData).toHaveBeenCalledWith(expect.any(String), "Byte");
   });
 
+  it("uses custom typeNumber when provided", async () => {
+    const { encodeBytesToQRCodes } = await import("../src/index");
+    await encodeBytesToQRCodes(new TextEncoder().encode("hi"), { typeNumber: 10 });
+    expect(mockQrcode).toHaveBeenCalledWith(10, "L");
+  });
+
   it("returns array of objects with frame indices", async () => {
     const { encodeBytesToQRCodes } = await import("../src/index");
     const frames = await encodeBytesToQRCodes(new TextEncoder().encode("hi"));

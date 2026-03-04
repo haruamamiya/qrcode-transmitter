@@ -86,6 +86,10 @@
       <h2>1. Encode: Generate QR Codes</h2>
       <p class="hint">Enter text or select a file to generate QR codes, switching 5 frames per second</p>
       <textarea id="encode-input" placeholder="Enter text to transmit...">Hello, QR Code!</textarea>
+      <p class="hint">
+        QR TypeNumber (4-40):
+        <input id="type-number" type="number" min="4" max="40" value="15" />
+      </p>
       <p>
         <button id="encode-text">Generate from Text</button>
         <button id="encode-file">Select File</button>
