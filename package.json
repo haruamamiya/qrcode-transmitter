@@ -20,7 +20,7 @@
     "build": "tsup",
     "dev": "tsup --watch",
     "typecheck": "tsc --noEmit",
-    "test": "vitest",
+    "test": "vitest run",
     "test:run": "vitest run",
     "example": "vite --config example/vite.config.ts",
     "example:build": "vite build --config example/vite.config.ts"

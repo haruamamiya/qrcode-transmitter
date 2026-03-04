@@ -101,7 +101,7 @@ Common scripts:
 - `pnpm build`: build to `dist/` with `tsup`
 - `pnpm dev`: watch build
 - `pnpm typecheck`: run TypeScript type checks
-- `pnpm test`: run Vitest
+- `pnpm test`: run Vitest (non-watch)
 - `pnpm example`: start the example app (Vite)
 
 ## Run the Example
