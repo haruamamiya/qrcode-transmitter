@@ -10,7 +10,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Optional `typeNumber` parameter for `encodeBytesToQRCodes` to customize QR version (default 15)
-- Buffered backscan for `startVideoQRReceiver` to recover fast-switched frames (configurable via options)
 
 ## [1.1.0] - 2026-03-03
 
