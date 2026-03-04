@@ -73,6 +73,11 @@ Starts scanning and reassembles data by protocol:
 - `options.onFrame`: called when each new (non-duplicate) frame is parsed
 - `options.onComplete`: called when all frames are received and SHA-256 verification passes
 - `options.onVerifyFailed`: called when SHA-256 verification fails after reassembly
+- `options.bufferMs`: enable buffered backscan window in ms (default 1200)
+- `options.bufferMaxFrames`: max frames to retain in buffer (default 36)
+- `options.backscanIntervalMs`: interval for buffered rescans (default 250)
+- `options.backscanBatchSize`: max frames scanned per backscan tick (default 6)
+- `options.dedupeWindowMs`: de-duplication window for decoded frames (default 1500)
 
 Returns an object with `stop()` to stop and destroy the scanner.
 
